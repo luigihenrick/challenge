@@ -1,6 +1,8 @@
 using AutoMapper;
 using API.Profiles;
 using Infraestructure.ExternalServices;
+using Polly;
+using Polly.Extensions.Http;
 
 namespace API.Extensions;
 
@@ -10,7 +12,7 @@ public static class StartupExtensions
     {
         // Dependency Injection
         services.AddScoped<IHackerNewsClient, HackerNewsClient>();
-        services.AddHttpClient<IHackerNewsClient, HackerNewsClient>();
+        services.AddHttpClient<IHackerNewsClient, HackerNewsClient>().AddPolicyHandler(GetRetryPolicy());
 
         // Cache
         services.AddMemoryCache();
@@ -22,5 +24,13 @@ public static class StartupExtensions
         });
         IMapper mapper = mapperConfig.CreateMapper();
         services.AddSingleton(mapper);
+    }
+
+    private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
+    {
+        return HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.NotFound)
+            .WaitAndRetryAsync(6, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
     }
 }
