@@ -8,11 +8,15 @@ namespace API.Extensions;
 
 public static class StartupExtensions
 {
-    public static void ConfigureServices(this IServiceCollection services)
+    public static void ConfigureServices(this IServiceCollection services, ConfigurationManager configuration)
     {
+        var pollyMaxRetryCount = configuration.GetValue<int?>("HackerNews:Polly:MaxRetryCount");
+        var pollySleepDurationInSeconds = configuration.GetValue<int?>("HackerNews:Polly:SleepDurationInSeconds");
+        
         // Dependency Injection
         services.AddScoped<IHackerNewsClient, HackerNewsClient>();
-        services.AddHttpClient<IHackerNewsClient, HackerNewsClient>().AddPolicyHandler(GetRetryPolicy());
+        services.AddHttpClient<IHackerNewsClient, HackerNewsClient>()
+                .AddPolicyHandler(GetRetryPolicy(pollyMaxRetryCount, pollySleepDurationInSeconds));
 
         // Cache
         services.AddMemoryCache();
@@ -26,11 +30,11 @@ public static class StartupExtensions
         services.AddSingleton(mapper);
     }
 
-    private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
+    private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy(int? maxRetryCount, int? sleepDurationInSeconds)
     {
         return HttpPolicyExtensions
             .HandleTransientHttpError()
             .OrResult(msg => msg.StatusCode == System.Net.HttpStatusCode.NotFound)
-            .WaitAndRetryAsync(6, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+            .WaitAndRetryAsync(maxRetryCount ?? 5, retryAttempt => TimeSpan.FromSeconds(sleepDurationInSeconds ?? Math.Pow(2, retryAttempt)));
     }
 }
