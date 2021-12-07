@@ -1,4 +1,4 @@
-[![Heroku](http://heroku-badge.herokuapp.com/?app=luigihenrick-challenge&root=best20&style=flat)]
+![Heroku](http://heroku-badge.herokuapp.com/?app=luigihenrick-challenge&root=best20&style=flat)
 
 # HackerNews BestStories Challenge
 
