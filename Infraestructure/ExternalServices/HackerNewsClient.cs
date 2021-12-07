@@ -7,22 +7,23 @@ public class HackerNewsClient : IHackerNewsClient
 {
     private readonly IConfiguration _config;
     private readonly HttpClient _client;
+    private readonly Uri _baseUri;
 
     public HackerNewsClient(IConfiguration config, HttpClient client)
     {
-        this._config = config;
-        this._client = client;
+        _config = config;
+        _client = client;
+        _baseUri = new Uri(_config.GetValue<string>("HackerNews:BaseUri"));
     }
 
     public async Task<IEnumerable<StoryResponse?>> GetBestStories(int? skip = 0, int? take = 20)
     {
-        var baseUri = new Uri(_config.GetValue<string>("HackerNews:BaseUri"));
         var bestStoriesIds = await GetBestStoriesIds(skip, take);
 
         var requests = new List<Task<HttpResponseMessage>>();
 
         foreach(var storyId in bestStoriesIds)
-            requests.Add(_client.GetAsync(new Uri(baseUri, $"/v0/item/{storyId}.json")));
+            requests.Add(_client.GetAsync(new Uri(_baseUri, $"/v0/item/{storyId}.json")));
 
 
         await Task.WhenAll(requests);
@@ -36,8 +37,7 @@ public class HackerNewsClient : IHackerNewsClient
 
     public async Task<IEnumerable<long>?> GetBestStoriesIds(int? skip = 0, int? take = 20)
     {
-        var baseUri = new Uri(_config.GetValue<string>("HackerNews:BaseUri"));
-        var response = await _client.GetAsync(new Uri(baseUri, "/v0/beststories.json"));
+        var response = await _client.GetAsync(new Uri(_baseUri, "/v0/beststories.json"));
         
         if(!response.IsSuccessStatusCode)
             throw new InvalidOperationException("Failed to get beststories, try again later.");
