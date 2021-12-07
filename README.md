@@ -1,3 +1,5 @@
+[![Heroku](http://heroku-badge.herokuapp.com/?app=luigihenrick-challenge&root=best20&style=flat)]
+
 # HackerNews BestStories Challenge
 
 This project it's a challenge to list best 20 hacker news stories from [HackerNews API](https://github.com/HackerNews/API) and can be tested [here](https://luigihenrick-challenge.herokuapp.com/best20).
