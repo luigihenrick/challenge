@@ -14,23 +14,24 @@ public class HackerNewsClient : IHackerNewsClient
         this._client = client;
     }
 
-    public async Task<IEnumerable<StoryResponse>> GetBestStories(int? skip = 0, int? take = 20)
+    public async Task<IEnumerable<StoryResponse?>> GetBestStories(int? skip = 0, int? take = 20)
     {
         var baseUri = new Uri(_config.GetValue<string>("HackerNews:BaseUri"));
         var bestStoriesIds = await GetBestStoriesIds(skip, take);
 
-        var response = new List<StoryResponse>();
+        var requests = new List<Task<HttpResponseMessage>>();
 
         foreach(var storyId in bestStoriesIds)
-        {
-            var storyRequest = await _client.GetAsync(new Uri(baseUri, $"/v0/item/{storyId}.json"));
+            requests.Add(_client.GetAsync(new Uri(baseUri, $"/v0/item/{storyId}.json")));
 
-            var storyResponse = await storyRequest.Content.ReadAsStringAsync();
 
-            response.Add(JsonSerializer.Deserialize<StoryResponse>(storyResponse));
-        }
+        await Task.WhenAll(requests);
 
-        return response;
+        var responses = requests.Select(async t => JsonSerializer.Deserialize<StoryResponse>(await t.Result.Content.ReadAsStringAsync()));
+
+        await Task.WhenAll(responses);
+
+        return responses.Select(t => t.GetAwaiter().GetResult());
     }
 
     public async Task<IEnumerable<long>?> GetBestStoriesIds(int? skip = 0, int? take = 20)
